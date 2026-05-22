@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#2e3440" rx="112" />
+  
+  <g stroke="#88c0d0" stroke-width="40" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Checkmark 1 -->
+    <path d="M100 370 l 40 40 l 80 -80" />
+    
+    <!-- Box 1 -->
+    <rect x="100" y="120" width="80" height="80" rx="20" />
+    
+    <!-- Lines -->
+    <path d="M260 140 h 150" />
+    <path d="M260 180 h 150" />
+    
+    <path d="M260 340 h 150" />
+    <path d="M260 380 h 150" />
+  </g>
+</svg>

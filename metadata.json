@@ -1,0 +1,6 @@
+{
+  "name": "Fokus",
+  "description": "A minimal, clean, and elegant todo list web application featuring a Nordic color palette, local storage persistence, and JSON backup export/import support.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

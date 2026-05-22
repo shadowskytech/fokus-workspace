@@ -1,0 +1,29 @@
+{
+  "entities": {
+    "Task": {
+      "title": "Task",
+      "description": "A single todo item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "priority": { "type": "string", "enum": ["low", "medium", "high"] },
+        "category": { "type": "string" },
+        "dueDate": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "completedAt": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["id", "title", "description", "completed", "priority", "category", "dueDate", "createdAt", "updatedAt", "userId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/Task" },
+      "description": "Tasks belonging to a specific user"
+    }
+  }
+}
