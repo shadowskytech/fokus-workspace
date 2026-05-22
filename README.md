@@ -29,7 +29,7 @@ Ensure you have **Node.js** (v18 or higher) and **npm** installed on your system
 
 1. **Clone your repository** (or extract your downloaded ZIP file):
    ```bash
-   git clone <your-repository-url>
+   git clone github.com/shadowskytech/fokus-workspace.git
    cd fokus-workspace
    ```
 
