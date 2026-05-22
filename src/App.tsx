@@ -73,12 +73,8 @@ import {
   Folder,
   Tag,
   Settings,
-  Cloud,
-  RefreshCw,
   ToggleRight,
-  ToggleLeft,
-  LogOut,
-  LogIn
+  ToggleLeft
 } from 'lucide-react';
 
 import { Task, Priority, FilterState } from './types.ts';
@@ -95,17 +91,13 @@ import { StatPanel } from './components/StatPanel.tsx';
 import { TaskForm } from './components/TaskForm.tsx';
 import { TaskRow } from './components/TaskRow.tsx';
 
-import { auth, db, googleProvider, handleFirestoreError, OperationType } from './firebase.ts';
-import { signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
-import { collection, doc, writeBatch, onSnapshot, setDoc, deleteDoc, getDocs, query } from 'firebase/firestore';
+
 
 export default function App() {
   // ---------------------------------------------------------------------------
   // Core Application States
   // ---------------------------------------------------------------------------
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [authChecking, setAuthChecking] = useState<boolean>(true);
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'error' | 'offline' | 'success'>('idle');
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [isNerdMode, setIsNerdMode] = useState<boolean>(false);
@@ -321,55 +313,7 @@ export default function App() {
     };
   }, [isNerdMode]);
 
-  // ---------------------------------------------------------------------------
-  // Firebase Auth and Real-time Sync
-  // ---------------------------------------------------------------------------
-  useEffect(() => {
-    const unsubAuth = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
-      setAuthChecking(false);
-      
-      if (user) {
-        setSyncStatus('success');
-        // Push any local tasks to Firebase if they exist
-        const localTasks = loadTasksFromCache();
-        if (localTasks.length > 0) {
-           const batch = writeBatch(db);
-           localTasks.forEach(task => {
-             const ref = doc(db, 'users', user.uid, 'tasks', task.id);
-             batch.set(ref, { ...task, userId: user.uid }, { merge: true });
-           });
-           try {
-             await batch.commit();
-             // clear local cache so we don't re-upload
-             saveTasksToCache([]);
-           } catch(err) {
-             console.error("Local sync error", err);
-           }
-        }
-      } else {
-        setSyncStatus('offline');
-      }
-    });
-    return unsubAuth;
-  }, []);
 
-  useEffect(() => {
-    if (!currentUser) return;
-    
-    setSyncStatus('syncing');
-    const q = query(collection(db, 'users', currentUser.uid, 'tasks'));
-    const unsub = onSnapshot(q, { includeMetadataChanges: true }, (snapshot) => {
-       const hasPendingWrites = snapshot.metadata.hasPendingWrites;
-       const firestoreTasks = snapshot.docs.map(d => d.data() as Task);
-       setTasks(firestoreTasks);
-       setSyncStatus(hasPendingWrites ? 'syncing' : 'success');
-    }, (error) => {
-       handleFirestoreError(error, OperationType.LIST, `users/${currentUser.uid}/tasks`);
-       setSyncStatus('error');
-    });
-    return unsub;
-  }, [currentUser]);
 
   // ---------------------------------------------------------------------------
   // Alert Notifications Toast management
@@ -386,23 +330,6 @@ export default function App() {
   // Mutation Handlers (PROGRAMMATIC STATE API ENDPOINTS)
   // ---------------------------------------------------------------------------
 
-  const syncTaskToCloud = async (task: Task) => {
-    if (!currentUser) return;
-    try {
-      await setDoc(doc(db, 'users', currentUser.uid, 'tasks', task.id), { ...task, userId: currentUser.uid }, { merge: true });
-    } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, `users/${currentUser.uid}/tasks/${task.id}`);
-    }
-  };
-  
-  const syncDeleteTaskFromCloud = async (taskId: string) => {
-    if (!currentUser) return;
-    try {
-      await deleteDoc(doc(db, 'users', currentUser.uid, 'tasks', taskId));
-    } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `users/${currentUser.uid}/tasks/${taskId}`);
-    }
-  };
 
   /**
    * Appends a newly created task to the cached list.
@@ -429,7 +356,7 @@ export default function App() {
     const updatedTasks = [newTask, ...tasks];
     setTasks(updatedTasks);
     saveTasksToCache(updatedTasks);
-    syncTaskToCloud(newTask);
+
     triggerNotification(`Created task: "${newTask.title}"`);
   };
 
@@ -455,7 +382,6 @@ export default function App() {
 
     const updatedTask = updatedTasks.find(t => t.id === id);
     if (updatedTask) {
-      syncTaskToCloud(updatedTask);
       if (updatedTask.completed) {
         triggerNotification(`Task "${updatedTask.title}" marked completed.`);
       } else {
@@ -472,7 +398,7 @@ export default function App() {
     const updatedTasks = tasks.filter(task => task.id !== id);
     setTasks(updatedTasks);
     saveTasksToCache(updatedTasks);
-    syncDeleteTaskFromCloud(id);
+
     if (targetTask) {
       triggerNotification(`Removed task "${targetTask.title}".`, 'info');
     }
@@ -496,10 +422,7 @@ export default function App() {
     setTasks(updatedTasks);
     saveTasksToCache(updatedTasks);
     
-    const updatedTask = updatedTasks.find(t => t.id === id);
-    if (updatedTask) {
-      syncTaskToCloud(updatedTask);
-    }
+
     
     triggerNotification(`Updated task details successfully.`);
   };
@@ -522,13 +445,7 @@ export default function App() {
    */
   const handleResetApplication = async () => {
     if (window.confirm('Are you holding complete certainty? This wipes all client tasks and resets layouts.')) {
-      if (currentUser && tasks.length > 0) {
-        const batch = writeBatch(db);
-        tasks.forEach(t => {
-           batch.delete(doc(db, 'users', currentUser.uid, 'tasks', t.id));
-        });
-        await batch.commit().catch(e => console.error(e));
-      }
+
       setTasks([]);
       saveTasksToCache([]);
       triggerNotification('Clean slate initialized. Local browser cache cleared.', 'info');
@@ -548,13 +465,7 @@ export default function App() {
     if (window.confirm(`Clear all ${completedCount} finished tasks?`)) {
       const activeOnly = tasks.filter(t => !t.completed);
       
-      if (currentUser) {
-        const batch = writeBatch(db);
-        tasks.filter(t => t.completed).forEach(t => {
-           batch.delete(doc(db, 'users', currentUser.uid, 'tasks', t.id));
-        });
-        await batch.commit().catch(e => console.error(e));
-      }
+
       
       setTasks(activeOnly);
       saveTasksToCache(activeOnly);
@@ -1163,48 +1074,16 @@ export default function App() {
                 <h2 className="text-lg font-bold text-slate-800 dark:text-[#eceff4] flex items-center gap-2">
                   <Settings size={18} className="text-[#88c0d0]" /> System Settings
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-[#d8dee9]/60">Manage your engine preferences, backup data, and view cloud sync status.</p>
+                <p className="text-xs text-slate-500 dark:text-[#d8dee9]/60">Manage your engine preferences and backup data.</p>
               </div>
 
-              {/* Data & Sync Panel */}
+              {/* Data Management Panel */}
               <section className="flex flex-col gap-4 font-sans p-5 bg-white dark:bg-[#2e3440]/30 border border-slate-100 dark:border-[#4c566a]/20 rounded-2xl">
                 <h3 className="text-sm font-bold text-slate-800 dark:text-[#eceff4] flex items-center gap-1.5 border-b border-slate-100 dark:border-[#4c566a]/20 pb-3">
-                  <Cloud size={14} className="text-[#88c0d0]" /> Cloud & Synchronization
+                  <FileText size={14} className="text-[#88c0d0]" /> Data Management
                 </h3>
                 
-                <div className="flex items-center justify-between py-2">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-sm font-medium text-slate-700 dark:text-[#eceff4]">Firebase Data Sync</span>
-                    <span className="text-xs text-slate-500 dark:text-[#d8dee9]/60">Automatically sync your data to the cloud when online.</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {currentUser ? (
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2 bg-slate-50 dark:bg-[#3b4252]/50 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-[#4c566a]/20">
-                          <RefreshCw size={12} className={`text-slate-400 ${syncStatus === 'syncing' ? 'animate-spin text-[#88c0d0]' : syncStatus === 'success' ? 'text-[#a3be8c]' : 'text-[#bf616a]'}`} />
-                          <span className="text-xs font-mono text-slate-500 dark:text-[#d8dee9]/80 cursor-default">
-                            {syncStatus === 'syncing' ? 'Syncing...' : syncStatus === 'success' ? 'Synced' : syncStatus === 'error' ? 'Error' : 'Offline'}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => signOut(auth)}
-                          className="flex items-center gap-2 text-xs font-semibold py-1.5 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-[#3b4252] dark:hover:bg-[#434c5e] transition-colors cursor-pointer"
-                        >
-                          <LogOut size={12} /> Sign Out
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => signInWithPopup(auth, googleProvider).catch(e => triggerNotification(e.message, 'error'))}
-                        className="flex items-center gap-2 text-xs font-semibold py-1.5 px-3 rounded-lg bg-[#88c0d0] hover:bg-[#81a1c1] text-[#2e3440] transition-colors cursor-pointer shadow-sm"
-                      >
-                        <LogIn size={12} /> Sign In with Google
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-100 dark:border-[#4c566a]/20">
+                <div className="flex flex-wrap gap-2">
                   <button
                     onClick={handleExportBackup}
                     className="flex-1 min-w-[140px] text-xs font-semibold py-2 px-3 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-[#3b4252] dark:hover:bg-[#434c5e] text-slate-700 dark:text-[#eceff4] transition-colors border border-slate-200 dark:border-[#4c566a]/40 flex items-center justify-center gap-2 cursor-pointer"
@@ -1301,20 +1180,7 @@ export default function App() {
         </div>
       </main>
 
-      {/* Floating Sync Indicator */}
-      {currentUser && (
-        <div className={`fixed bottom-6 left-6 px-3 py-2 rounded-xl shadow-lg border text-xs font-mono font-medium flex items-center gap-2 z-40 transition-all ${
-          syncStatus === 'syncing' ? 'bg-[#3b4252]/90 border-[#4c566a]/50 text-[#88c0d0]' :
-          syncStatus === 'success' ? 'bg-[#3b4252]/90 border-[#a3be8c]/50 text-[#a3be8c]' :
-          syncStatus === 'offline' ? 'bg-[#3b4252]/90 border-[#ebcb8b]/50 text-[#ebcb8b]' :
-          'bg-[#3b4252]/90 border-[#bf616a]/50 text-[#bf616a]'
-        }`}>
-          <Cloud size={14} className={syncStatus === 'syncing' ? 'animate-pulse' : ''} />
-          {syncStatus === 'syncing' ? 'Syncing...' :
-           syncStatus === 'success' ? 'Cloud Synced' :
-           syncStatus === 'offline' ? 'Offline Mode' : 'Sync Error'}
-        </div>
-      )}
+
 
       {/* Slide-over System Documents Schema Drawer */}
       <AnimatePresence>
