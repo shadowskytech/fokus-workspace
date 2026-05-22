@@ -32,11 +32,10 @@ service cloud.firestore {
     }
 
     match /users/{userId}/tasks/{taskId} {
-      allow read: if isSignedIn() && userId == request.auth.uid && request.auth.token.email_verified == true;
-      allow list: if isSignedIn() && userId == request.auth.uid && request.auth.token.email_verified == true;
+      allow read: if isSignedIn() && userId == request.auth.uid;
+      allow list: if isSignedIn() && userId == request.auth.uid;
       
       allow create: if isSignedIn() 
-        && request.auth.token.email_verified == true
         && userId == request.auth.uid
         && isValidId(taskId)
         && isValidTask(incoming())
@@ -44,7 +43,6 @@ service cloud.firestore {
         && incoming().id == taskId;
 
       allow update: if isSignedIn()
-        && request.auth.token.email_verified == true
         && userId == request.auth.uid
         && isValidId(taskId)
         && isValidTask(incoming())
@@ -58,7 +56,6 @@ service cloud.firestore {
         );
 
       allow delete: if isSignedIn() 
-        && request.auth.token.email_verified == true
         && userId == request.auth.uid;
     }
   }
