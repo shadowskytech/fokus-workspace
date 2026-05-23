@@ -45,15 +45,14 @@ export const TaskForm: React.FC<TaskFormProps> = ({ categories, onAddTask, onAdd
         !formRef.current.contains(event.target as Node) &&
         !title &&
         !description &&
-        !dueDate &&
-        category === 'Inbox'
+        !dueDate
       ) {
         setIsExpanded(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [title, description, dueDate, category, isNerdMode]);
+  }, [title, description, dueDate, isNerdMode]);
 
   /**
    * Processes the task form submission, validating input
@@ -66,7 +65,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ categories, onAddTask, onAdd
       title: title.trim(),
       description: isNerdMode ? '' : description.trim(),
       priority: isNerdMode ? 'medium' : priority,
-      category: isNerdMode ? 'Inbox' : category,
+      category: 'Inbox',
       dueDate: isNerdMode ? '' : dueDate
     });
 
@@ -176,60 +175,8 @@ export const TaskForm: React.FC<TaskFormProps> = ({ categories, onAddTask, onAdd
               />
             </div>
 
-            {/* Selection Grid: Category, Priority, and DueDate */}
+            {/* Selection Grid: Priority and DueDate */}
             <div className="flex flex-row flex-wrap gap-4 items-end">
-              
-              {/* Category Selector */}
-              <div className="flex-1 min-w-[160px] flex flex-col gap-1.5">
-                <label className="text-[11px] font-mono uppercase tracking-wider text-slate-400 dark:text-[#d8dee9]/60 flex items-center gap-1.5">
-                  <Folder size={12} /> Label
-                </label>
-                
-                {isAddingCat ? (
-                  <div className="flex gap-1">
-                    <input 
-                      type="text"
-                      placeholder="New label..."
-                      value={newCatInput}
-                      onChange={(e) => setNewCatInput(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleCreateCategory(e as any)}
-                      className="flex-1 bg-slate-100 dark:bg-[#2e3440] border border-[#81a1c1]/40 text-slate-800 dark:text-[#eceff4] text-xs rounded-lg p-1.5 focus:outline-hidden"
-                      autoFocus
-                    />
-                    <button 
-                      onClick={handleCreateCategory}
-                      className="bg-[#a3be8c] text-[#2e3440] text-xs font-semibold px-2 rounded-lg hover:scale-105 active:scale-95 transition-all"
-                    >
-                      OK
-                    </button>
-                    <button 
-                      onClick={() => setIsAddingCat(false)}
-                      className="bg-[#bf616a]/15 text-[#bf616a] text-xs px-2 rounded-lg hover:bg-[#bf616a]/20 transition-all font-semibold"
-                    >
-                      X
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex gap-1.5">
-                    <select
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                      className="max-sm:w-full flex-1 bg-slate-100 dark:bg-[#3b4252] border border-slate-700/20 dark:border-[#4c566a]/40 text-slate-700 dark:text-[#d8dee9] rounded-lg p-1.5 text-xs focus:outline-hidden focus:border-[#81a1c1]/40"
-                    >
-                      {categories.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={() => setIsAddingCat(true)}
-                      className="p-2 border border-dashed border-slate-700/30 dark:border-[#4c566a]/50 text-slate-500 dark:text-slate-400 hover:text-[#88c0d0] rounded-lg transition-colors text-xs"
-                    >
-                      + New
-                    </button>
-                  </div>
-                )}
-              </div>
 
               {/* Priority Chips Selection */}
               <div className="flex-1 min-w-[200px] flex flex-col gap-1.5">

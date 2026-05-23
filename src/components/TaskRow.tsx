@@ -169,20 +169,6 @@ export const TaskRow: React.FC<TaskRowProps> = ({
 
         {/* Row 3: parameters columns */}
         <div className="flex flex-row flex-wrap gap-3">
-          
-          {/* Label selector */}
-          <div className="flex-1 min-w-[120px] flex flex-col gap-1">
-            <label className="text-[10px] font-mono uppercase tracking-wider text-slate-400 dark:text-[#d8dee9]/60">Label</label>
-            <select
-              value={editCategory}
-              onChange={(e) => setEditCategory(e.target.value)}
-              className="bg-white dark:bg-[#2e3440] border border-slate-700/20 dark:border-[#4c566a]/40 text-slate-700 dark:text-[#d8dee9] rounded-lg p-1.5 text-xs focus:outline-hidden"
-            >
-              {categories.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
 
           {/* Priority selector */}
           <div className="flex-1 min-w-[120px] flex flex-col gap-1">
