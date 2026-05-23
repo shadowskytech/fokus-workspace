@@ -11,30 +11,41 @@ export default defineConfig(() => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['icon.svg', 'icon-192.png', 'icon-512.png'],
+        devOptions: {
+          enabled: true,
+          type: 'module',
+          navigateFallback: 'index.html',
+          suppressWarnings: true,
+        },
+        includeAssets: ['icon.svg', 'icon-192x192.png', 'icon-512x512.png', 'icon-maskable.png', 'apple-touch-icon.png'],
         manifest: {
           name: 'Fokus',
           short_name: 'Fokus',
           description: 'A minimalist to-do list application.',
-          theme_color: '#0f172a',
-          background_color: '#0f172a',
+          theme_color: '#1e222b',
+          background_color: '#1e222b',
           display: 'standalone',
+          orientation: 'any',
+          scope: '/',
+          start_url: '/',
+          id: '/',
+          categories: ['productivity', 'utilities'],
           icons: [
             {
-              src: 'icon-192.png',
+              src: 'icon-192x192.png',
               sizes: '192x192',
               type: 'image/png'
             },
             {
-              src: 'icon-512.png',
+              src: 'icon-512x512.png',
               sizes: '512x512',
               type: 'image/png'
             },
             {
-              src: 'icon-512.png',
+              src: 'icon-maskable.png',
               sizes: '512x512',
               type: 'image/png',
-              purpose: 'any maskable'
+              purpose: 'maskable'
             }
           ]
         }
